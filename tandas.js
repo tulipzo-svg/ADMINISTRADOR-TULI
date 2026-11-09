@@ -136,9 +136,18 @@ function armarLoteExcel(r, envio, items, empaques) {
   };
 }
 
-/* ---------- FORMULARIO: NUEVA TANDA ---------- */
+/* ---------- FORMULARIO: NUEVA TANDA ----------
+   1) Buscas la prenda por nombre.
+   2) Ves TODAS sus tallas y colores, con cuánto hay de cada uno.
+   3) Escribes cuánto llegó de cada color y su costo.
+   Si llega un color que la prenda no tiene, lo agregas ahí mismo. */
+let compraProdId = null;        // prenda abierta en la tabla
+let compraColoresExtra = [];    // colores nuevos agregados mientras se arma la tanda: [{producto_id, talla, color}]
+
 function abrirFormCompra() {
-  state.compraLineas = [{ producto_id: "", talla: "", color: "", cantidad: 1, costo_unit: 0 }];
+  state.compraLineas = [];
+  compraProdId = null;
+  compraColoresExtra = [];
   const filaEmpaque = id => `
     <div class="row3 emp-row">
       <span>${EMP_NOMBRE[id]}</span>
@@ -163,8 +172,12 @@ function abrirFormCompra() {
       <p class="nombre-prev" id="cNombre"></p>
 
       <h4>Prendas que llegaron</h4>
-      <div id="cLineas" class="stack"></div>
-      <button type="button" class="btn ghost sm" id="btnAddLinea" style="align-self:flex-start">+ Agregar prenda</button>
+      <div class="buscar-tanda">
+        <input id="buscarTanda" class="input" placeholder="Escribe el nombre de la prenda…" autocomplete="off">
+        <div id="resTanda" class="mini-grid"></div>
+      </div>
+      <div id="detalleTanda"></div>
+      <div id="resumenTanda"></div>
 
       <h4>Empaques de esta tanda</h4>
       ${EMP_IDS.map(filaEmpaque).join("")}
@@ -180,51 +193,153 @@ function abrirFormCompra() {
   abrirModal();
 }
 
+// Resultados del buscador de prendas (por nombre o categoría)
+function pintarBuscadorTanda() {
+  const q = $("#buscarTanda").value.trim().toLowerCase();
+  const res = q ? state.productos.filter(p => (p.nombre + " " + p.categoria).toLowerCase().includes(q)) : [];
+  $("#resTanda").innerHTML = res.length
+    ? res.map(p => `
+      <button type="button" class="mini" data-tanda-pick="${esc(p.id)}">
+        <span class="thumb">${fotoHTML(p)}</span>
+        <div><b>${esc(p.nombre)}</b><small>${esc(p.categoria)} · hay ${stockTotal(p)}</small></div>
+      </button>`).join("")
+    : (q ? `<p class="muted small">No encontramos "${esc(q)}".</p>` : "");
+}
+
+// Tallas que se pueden elegir al agregar un color nuevo
+function tallasPosibles(p) {
+  const existentes = [...new Set(p.variantes.map(v => v.talla))];
+  if (existentes.includes("Única")) return ["Única"];
+  return [...new Set(["S", "M", "L", ...existentes])];
+}
+
+// Todas las combinaciones talla + color de la prenda, más los colores nuevos
+function filasTanda(p) {
+  const filas = [];
+  const vistos = new Set();
+  const añadir = (talla, color, stock) => {
+    const k = talla + "|" + color;
+    if (vistos.has(k)) return;
+    vistos.add(k);
+    filas.push({ talla, color, stock });
+  };
+  p.variantes.forEach(v => añadir(v.talla, v.color, Number(v.stock) || 0));
+  state.compraLineas.filter(l => l.producto_id === p.id).forEach(l => añadir(l.talla, l.color, stockVariante(p.id, l.talla, l.color)));
+  compraColoresExtra.filter(x => x.producto_id === p.id).forEach(x => añadir(x.talla, x.color, stockVariante(p.id, x.talla, x.color)));
+  return filas;
+}
+
+// Tabla de la prenda elegida: un renglón por talla y color
+function pintarDetalleTanda() {
+  const box = $("#detalleTanda");
+  const p = state.productos.find(x => x.id === compraProdId);
+  if (!p) { box.innerHTML = ""; return; }
+
+  const filas = filasTanda(p).map(f => {
+    const prev = state.compraLineas.find(l => l.producto_id === p.id && l.talla === f.talla && l.color === f.color);
+    const cant = prev ? prev.cantidad : "";
+    const costo = prev ? prev.costo_unit : p.costo;
+    return `
+    <tr data-fila data-talla="${esc(f.talla)}" data-color="${esc(f.color)}">
+      <td>${esc(nombreTalla(f.talla))}</td>
+      <td><b>${esc(f.color)}</b></td>
+      <td class="num">${f.stock}</td>
+      <td>
+        <input class="celda" type="number" min="0" step="1" inputmode="numeric" placeholder="0" value="${cant}" data-tc="cant" aria-label="Cantidad de ${esc(f.color)}">
+        <small class="hint" data-hint-fila></small>
+      </td>
+      <td><input class="celda" type="number" min="0" step="0.01" inputmode="decimal" value="${costo}" data-tc="costo" aria-label="Costo de ${esc(f.color)}"></td>
+      <td class="num" data-sub>$0.00</td>
+    </tr>`;
+  }).join("");
+
+  box.innerHTML = `
+  <div class="card tanda-prod">
+    <div class="tanda-head">
+      <div class="thumb-sm">${fotoHTML(p)}</div>
+      <div class="tanda-titulo">
+        <small class="cat">${esc(p.categoria)}</small>
+        <h4>${esc(p.nombre)}</h4>
+        <small class="muted">Hay ${stockTotal(p)} en total</small>
+      </div>
+      <button type="button" class="x" data-tanda-cambiar aria-label="Elegir otra prenda">✕</button>
+    </div>
+
+    <div class="tabla-wrap">
+      <table class="tab-tanda">
+        <thead><tr><th>Talla</th><th>Color</th><th>Hay</th><th>Llegan</th><th>Costo c/u</th><th>Subtotal</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+
+    <div class="color-nuevo">
+      <p class="small muted">¿Llegó un color que esta prenda no tiene?</p>
+      <div class="color-nuevo-fila">
+        <input id="nuevoColor" maxlength="40" placeholder="Ej: Amarillo" autocomplete="off" aria-label="Nombre del color nuevo">
+        <select id="nuevaTalla" aria-label="Talla del color nuevo">
+          ${tallasPosibles(p).map(t => `<option value="${esc(t)}">${esc(nombreTalla(t))}</option>`).join("")}
+        </select>
+        <button type="button" class="btn sm" data-tanda-nuevo>Agregar color</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// Lo escrito en la tabla pasa a las prendas de la tanda (sin tocar las de otras prendas)
+function sincronizarTanda() {
+  const p = state.productos.find(x => x.id === compraProdId);
+  if (!p || !$("#detalleTanda .tanda-prod")) return;
+  const nuevas = $$("#detalleTanda tr[data-fila]").map(tr => ({
+    producto_id: p.id,
+    talla: tr.dataset.talla,
+    color: tr.dataset.color,
+    cantidad: Number(tr.querySelector('[data-tc="cant"]').value) || 0,
+    costo_unit: Number(tr.querySelector('[data-tc="costo"]').value) || 0,
+  })).filter(l => l.cantidad > 0);
+  state.compraLineas = [...state.compraLineas.filter(l => l.producto_id !== p.id), ...nuevas];
+}
+
+// Resumen de todo lo que lleva la tanda (todas las prendas)
 function pintarLineasCompra() {
   const f = $("#formCompra");
   if (!f) return;
-  $("#cLineas").innerHTML = state.compraLineas.map((l, i) => {
-    const p = state.productos.find(x => x.id === l.producto_id);
-    const tallas = p ? [...new Set(p.variantes.map(v => v.talla))] : [];
-    const colores = p ? [...new Set(p.variantes.map(v => v.color))] : [];
-    return `
-    <div class="card linea-compra">
-      <select data-i="${i}" data-f="producto" aria-label="Prenda">
-        <option value="">Elige la prenda…</option>
-        ${state.productos.map(x => `<option value="${esc(x.id)}" ${x.id === l.producto_id ? "selected" : ""}>${esc(x.nombre)} · hay ${stockTotal(x)}</option>`).join("")}
-      </select>
-      <div class="row3">
-        <select data-i="${i}" data-f="talla" aria-label="Talla" ${p ? "" : "disabled"}>
-          ${tallas.map(t => `<option value="${esc(t)}" ${t === l.talla ? "selected" : ""}>${esc(nombreTalla(t))}</option>`).join("")}
-        </select>
-        <select data-i="${i}" data-f="color" aria-label="Color" ${p ? "" : "disabled"}>
-          ${colores.map(c => `<option value="${esc(c)}" ${c === l.color ? "selected" : ""}>${esc(c)}</option>`).join("")}
-        </select>
-        <label class="cant">Cantidad
-          <input type="number" min="1" step="1" inputmode="numeric" value="${l.cantidad}" data-i="${i}" data-f="cantidad" aria-label="Cantidad">
-          <small class="hint" data-hint-linea="${i}"></small>
-        </label>
-      </div>
-      <div class="row2">
-        <label>Costo c/u (USD)<input type="number" min="0" step="0.01" inputmode="decimal" value="${l.costo_unit}" data-i="${i}" data-f="costo"></label>
-        <button type="button" class="btn ghost sm" data-i="${i}" data-f="quitar" style="align-self:end">Quitar</button>
-      </div>
-    </div>`;
-  }).join("");
+  const lista = state.compraLineas;
+  $("#resumenTanda").innerHTML = lista.length ? `
+    <h4 class="sub-h">Esta tanda lleva</h4>
+    <ul class="lista">${lista.map((l, i) => {
+      const p = state.productos.find(x => x.id === l.producto_id);
+      return `<li class="linea">
+        <div><b>${esc(p ? p.nombre : "Prenda")}</b><small>${esc(nombreTalla(l.talla))} · ${esc(l.color)} · ${money(l.costo_unit)} c/u</small></div>
+        <div class="linea-r"><span>× ${l.cantidad}</span><strong>${money(l.cantidad * l.costo_unit)}</strong>
+          <button type="button" class="x" data-tanda-quitar="${i}" aria-label="Quitar">✕</button></div>
+      </li>`;
+    }).join("")}</ul>`
+    : `<p class="muted small">Aún no agregas prendas. Busca una arriba y escribe cuánto llegó de cada color.</p>`;
+}
+
+function quitarLineaTanda(i) {
+  state.compraLineas.splice(i, 1);
+  pintarDetalleTanda();
+  pintarLineasCompra();
   recalcCompra();
 }
 
-// Recalcula total, nombre de la tanda y los hints "Hay X · quedarán Y"
+// Recalcula todo: lo de la tabla, el resumen, los "quedarán", subtotales, empaques y total
 function recalcCompra() {
   const f = $("#formCompra");
   if (!f) return;
 
-  state.compraLineas.forEach((l, i) => {
-    const h = f.querySelector(`[data-hint-linea="${i}"]`);
-    if (!h) return;
-    if (!l.producto_id) { h.textContent = ""; return; }
-    const hay = stockVariante(l.producto_id, l.talla, l.color);
-    h.textContent = `Hay ${hay} · quedarán ${hay + (Number(l.cantidad) || 0)}`;
+  const antes = JSON.stringify(state.compraLineas);
+  sincronizarTanda();
+  if (JSON.stringify(state.compraLineas) !== antes) pintarLineasCompra();
+
+  const p = compraProdId;
+  $$("#detalleTanda tr[data-fila]").forEach(tr => {
+    const cant = Number(tr.querySelector('[data-tc="cant"]').value) || 0;
+    const costo = Number(tr.querySelector('[data-tc="costo"]').value) || 0;
+    const hay = stockVariante(p, tr.dataset.talla, tr.dataset.color);
+    tr.querySelector("[data-hint-fila]").textContent = cant ? `quedarán ${hay + cant}` : "";
+    tr.querySelector("[data-sub]").textContent = money(cant * costo);
   });
 
   let costoEmp = 0;
@@ -243,6 +358,48 @@ function recalcCompra() {
   const desc = f.descripcion.value.trim();
   $("#cNombre").innerHTML = `Se guardará como <b>${esc(`Tanda ${siguienteNumero()}` + (desc ? ` · ${desc}` : ""))}</b>`;
 }
+
+// Clics dentro del formulario de tanda: buscador, elegir otra prenda, agregar color, quitar
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  let el;
+  if ((el = t.closest("[data-tanda-pick]"))) {
+    compraProdId = el.dataset.tandaPick;
+    $("#buscarTanda").value = "";
+    $("#resTanda").innerHTML = "";
+    pintarDetalleTanda();
+    recalcCompra();
+    return;
+  }
+  if (t.closest("[data-tanda-cambiar]")) {
+    sincronizarTanda();
+    compraProdId = null;
+    $("#detalleTanda").innerHTML = "";
+    recalcCompra();
+    return;
+  }
+  if (t.closest("[data-tanda-nuevo]")) {
+    const p = state.productos.find(x => x.id === compraProdId);
+    if (!p) return;
+    const color = $("#nuevoColor").value.trim();
+    if (!color) return toast("Escribe el nombre del color");
+    const talla = $("#nuevaTalla").value;
+    const repetido = filasTanda(p).some(x => x.talla === talla && x.color.toLowerCase() === color.toLowerCase());
+    if (repetido) return toast("Ese color ya está en la lista de esta prenda");
+    sincronizarTanda();
+    compraColoresExtra.push({ producto_id: p.id, talla, color });
+    pintarDetalleTanda();
+    recalcCompra();
+    toast(`Color "${color}" agregado. Escribe cuánto llegó ✔`);
+    return;
+  }
+  if ((el = t.closest("[data-tanda-quitar]"))) return quitarLineaTanda(Number(el.dataset.tandaQuitar));
+});
+
+// Buscador: se actualiza mientras escribes
+document.addEventListener("input", (e) => {
+  if (e.target.id === "buscarTanda") pintarBuscadorTanda();
+});
 
 async function guardarCompra(e) {
   e.preventDefault();
