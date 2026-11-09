@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#A0022E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Vallery">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'self'; object-src 'none'">
+  <title>Vallery · Gestión</title>
+  <link rel="icon" href="logo-tuli.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ================= LOGIN ================= -->
+  <section id="login" class="login" hidden>
+    <div class="card login-card">
+      <img src="logo-tuli.png" alt="Tuli" class="login-logo">
+      <p class="marca-login">Tuli</p>
+      <p class="eyebrow">Panel de gestión</p>
+      <h1>Hola, <em>bienvenida</em></h1>
+      <p class="muted small" id="loginAviso" style="margin-top:8px"></p>
+
+      <div id="loginDemo" class="stack" hidden></div>
+
+      <form id="loginForm" class="stack" hidden>
+        <label>Usuaria
+          <select name="usuaria" id="selUsuaria"></select>
+        </label>
+        <label>Contraseña
+          <input type="password" name="password" autocomplete="current-password" required>
+        </label>
+        <p class="error" id="loginError" hidden></p>
+        <button class="btn" type="submit">Entrar</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ================= APP ================= -->
+  <div id="app" class="app" hidden>
+
+    <aside class="side">
+      <div class="brand">
+        <img src="logo-tuli.png" alt="">
+        <div><strong class="marca">Tuli</strong><small>Sistema Vallery · Gestión</small></div>
+      </div>
+
+      <nav class="nav">
+        <button data-tab="inicio" class="active"><span>🏠</span>Inicio</button>
+        <button data-tab="venta"><span>🛍️</span>Venta rápida</button>
+        <button data-tab="inventario"><span>📦</span>Catálogo</button>
+        <button data-tab="compras"><span>📥</span>Gasto corporativo</button>
+        <button data-tab="caja"><span>💵</span>Caja</button>
+        <button data-tab="notas"><span>📝</span>Notas y recordatorios</button>
+        <button data-tab="analitica"><span>📊</span>Analítica</button>
+      </nav>
+
+      <div class="side-foot">
+        <button class="perfil-btn" id="chipUsuaria" data-action="perfil" aria-label="Mi perfil"></button>
+        <button class="btn ghost sm" data-action="tema"><span class="ico-tema">🌙</span> <span data-tema-txt>Modo oscuro</span></button>
+        <button class="btn ghost sm" data-action="salir">Salir</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="fechaHoy"></p>
+          <h1 id="tituloTab">Inicio</h1>
+        </div>
+        <div class="top-actions">
+          <button class="avatar-btn mobile-only" id="avatarMovil" data-action="perfil" aria-label="Mi perfil"></button>
+          <button class="btn ghost sm mobile-only" data-action="tema" aria-label="Cambiar tema"><span class="ico-tema">🌙</span></button>
+          <button class="btn ghost sm mobile-only" data-action="salir">Salir</button>
+        </div>
+      </header>
+
+      <!-- INICIO -->
+      <section data-view="inicio" class="view">
+        <div class="hero hero-row">
+          <div>
+            <p class="eyebrow">Vestir bonito, sentirse tú</p>
+            <h2 id="saludo"></h2>
+            <p class="frase-perfil" id="fraseHoy"></p>
+          </div>
+          <button class="btn sm ghost" data-action="capital">+ Capital de afuera</button>
+        </div>
+        <div class="kpis" id="kpisInicio"></div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Actividad en vivo</h3>
+            <ul class="lista" id="feed" style="margin-top:12px"></ul>
+          </div>
+          <div class="card">
+            <h3>Poca existencia</h3>
+            <ul class="lista" id="bajoStock" style="margin-top:12px"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- VENTA -->
+      <section data-view="venta" class="view" hidden>
+        <div class="grid-venta">
+          <div class="card">
+            <input id="buscarVenta" class="input" placeholder="Escribe el nombre de la prenda…" autocomplete="off">
+            <div id="resVenta" class="mini-grid"></div>
+            <div id="selVenta"></div>
+          </div>
+
+          <div class="card carrito">
+            <h3>Venta actual</h3>
+            <ul id="lineasVenta" class="lista" style="margin-top:10px"></ul>
+            <div id="empaqueVenta"></div>
+            <div class="total"><span>Total</span><strong id="totalVenta">$0.00</strong></div>
+            <button class="btn" id="btnCobrar" disabled>Confirmar venta</button>
+            <button class="btn ghost" id="btnVaciar" style="width:100%;margin-top:8px">Vaciar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- CATÁLOGO -->
+      <section data-view="inventario" class="view" hidden>
+        <div class="toolbar">
+          <input id="buscarInv" class="input" placeholder="Buscar prenda…" autocomplete="off">
+          <button class="btn" id="btnNueva">+ Nueva prenda</button>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="grid-prod" id="gridProd"></div>
+        <p class="nota" id="demoNota"></p>
+      </section>
+
+      <!-- GASTO CORPORATIVO (tandas, empaques e inventario) -->
+      <section data-view="compras" class="view" hidden>
+        <div class="toolbar">
+          <p class="muted small" style="flex:1">Cada llegada de mercancía se registra como una tanda. Aquí ves lo que hay disponible.</p>
+          <button class="btn" id="btnNuevaTanda">+ Nueva tanda</button>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Inventario disponible</h3><button class="btn sm ghost" id="btnInvInicial">Inventario inicial</button></div>
+          <div id="inventarioVivo" class="stack" style="margin-top:12px"></div>
+        </div>
+        <h3 class="sec-title">Registro de tandas</h3>
+        <div class="stack" id="listaLotes"></div>
+      </section>
+
+      <!-- CAJA -->
+      <section data-view="caja" class="view" hidden>
+        <div class="card tasa-card">
+          <div>
+            <small>Tasa BCV</small>
+            <strong id="tasaHoy">Sin registrar</strong>
+            <span class="small muted" id="tasaFecha"></span>
+            <span class="small" id="tasaVar"></span>
+          </div>
+          <form id="formTasa" class="tasa-form">
+            <input name="valor" type="number" step="0.0001" min="0" inputmode="decimal" placeholder="Bs por USD" required aria-label="Tasa en bolívares">
+            <input name="fecha" type="date" required aria-label="Fecha de la tasa">
+            <button class="btn sm" type="submit">Guardar tasa</button>
+          </form>
+        </div>
+        <div class="toolbar">
+          <div class="chips" id="chipsRango" style="margin-bottom:0;flex:1"></div>
+          <button class="btn sm" data-action="capital">+ Capital de afuera</button>
+        </div>
+        <div class="kpis" id="kpisCaja"></div>
+        <div class="grid-venta">
+          <form id="formMov" class="card stack">
+            <h3>Registrar movimiento</h3>
+            <label>Tipo
+              <select name="tipo">
+                <option value="gasto">Gasto operativo (alquiler, servicios, nómina)</option>
+                <option value="mercancia">Compra de mercancía</option>
+                <option value="capital">Capital de afuera (inyección)</option>
+                <option value="retiro">Retiro de dinero</option>
+              </select>
+            </label>
+            <label>Concepto
+              <input name="concepto" required maxlength="200" placeholder="Ej: Alquiler de noviembre">
+            </label>
+            <label>Monto (USD)
+              <input name="monto" type="number" step="0.01" min="0.01" inputmode="decimal" required>
+            </label>
+            <button class="btn" type="submit">Registrar</button>
+          </form>
+
+          <div class="card">
+            <h3>Movimientos</h3>
+            <ul id="listaMovs" class="lista" style="margin-top:10px"></ul>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Historial de tasas</h3>
+          <ul id="tasasHist" class="lista" style="margin-top:10px"></ul>
+        </div>
+        <p class="nota">Ganancia neta = ventas − costo de lo vendido − gastos operativos. Las compras de mercancía y los retiros salen de la caja, y el capital de afuera entra a la caja; ninguno cambia la ganancia.</p>
+      </section>
+
+      <!-- NOTAS Y RECORDATORIOS -->
+      <section data-view="notas" class="view" hidden>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Recordatorios de cobros y pagos</h3>
+            <p class="muted small" style="margin:4px 0 12px">Toca una opción rápida o escribe tu propio recordatorio.</p>
+            <div class="chips quick">
+              <button class="chip" data-rq="cobro" data-texto="Fulano me debe">Fulano me debe</button>
+              <button class="chip" data-rq="pago" data-texto="Pagar proveedor">Pagar proveedor</button>
+              <button class="chip" data-rq="otro" data-texto="">Otra cosa</button>
+            </div>
+            <form id="formRec" class="stack">
+              <div class="row2">
+                <label>Tipo
+                  <select name="tipo">
+                    <option value="cobro">Me deben</option>
+                    <option value="pago">Debo pagar</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </label>
+                <label>Monto USD (opcional)
+                  <input name="monto" type="number" step="0.01" min="0" inputmode="decimal">
+                </label>
+              </div>
+              <label>Recordatorio
+                <input name="texto" required maxlength="200" placeholder="Escribe lo que necesitas recordar" autocomplete="off">
+              </label>
+              <button class="btn" type="submit">Agregar recordatorio</button>
+            </form>
+            <div class="rec-resumen" id="recResumen"></div>
+            <ul class="lista" id="listaRec"></ul>
+          </div>
+
+          <div class="card">
+            <h3>Notas rápidas</h3>
+            <p class="muted small" style="margin:4px 0 12px">Pendientes del día a día. Marca lo que ya hiciste.</p>
+            <form id="formNota" class="form-nota">
+              <input name="texto" required maxlength="300" placeholder="Escribe un pendiente" autocomplete="off" aria-label="Nueva nota">
+              <button class="btn sm" type="submit">Agregar</button>
+            </form>
+            <ul class="lista" id="listaNotas" style="margin-top:12px"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ANALÍTICA -->
+      <section data-view="analitica" class="view" hidden>
+        <div class="toolbar wrap">
+          <div class="seg" id="segModo">
+            <button data-modo="dia" class="on">Día</button>
+            <button data-modo="semana">Semana</button>
+            <button data-modo="mes">Mes</button>
+            <button data-modo="anio">Año</button>
+          </div>
+          <div class="zoom">
+            <button class="btn ghost sm" id="pAtras" aria-label="Anterior">◀</button>
+            <button class="btn ghost sm" id="zOut" aria-label="Alejar">−</button>
+            <span id="zLabel"></span>
+            <button class="btn ghost sm" id="zIn" aria-label="Acercar">+</button>
+            <button class="btn ghost sm" id="pAdel" aria-label="Siguiente">▶</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="chart-wrap"><canvas id="grafico"></canvas></div>
+          <p class="muted small" id="graficoVacio"></p>
+        </div>
+        <div class="grid-3" id="rankings" style="margin-top:16px"></div>
+      </section>
+
+    </main>
+
+    <nav class="tabbar">
+      <button data-tab="inicio" class="active"><span>🏠</span>Inicio</button>
+      <button data-tab="venta"><span>🛍️</span>Venta</button>
+      <button data-tab="inventario"><span>📦</span>Catálogo</button>
+      <button data-tab="compras"><span>📥</span>Gasto</button>
+      <button data-tab="caja"><span>💵</span>Caja</button>
+      <button data-tab="notas"><span>📝</span>Notas</button>
+      <button data-tab="analitica"><span>📊</span>Gráficas</button>
+    </nav>
+  </div>
+
+  <!-- VISOR DE FOTO (foto grande al tocarla en el catálogo) -->
+  <div id="visor" class="visor" hidden>
+    <button class="visor-cerrar" data-visor-cerrar aria-label="Cerrar foto">✕</button>
+    <img id="visorImg" alt="">
+    <p id="visorNombre" class="visor-nombre"></p>
+  </div>
+
+  <!-- MODAL (formulario de prendas) -->
+  <div id="modal" class="modal" hidden><div class="sheet" role="dialog" aria-modal="true"></div></div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Librerías -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Lógica de la app -->
+  <script src="data.js"></script>
+  <script src="tandas.js"></script>
+  <script src="recordatorios.js"></script>
+  <script src="perfil.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
