@@ -452,3 +452,38 @@ input:focus, select:focus { border-color: var(--wine); box-shadow: 0 0 0 3px var
 @media (max-width: 899px) {
   .emo { width: 40px; height: 40px; font-size: 20px; }
 }
+
+/* ---------- TANDAS: BUSCADOR Y TABLA POR COLORES ---------- */
+.buscar-tanda { display: grid; gap: 6px; }
+.buscar-tanda .mini-grid { margin-top: 2px; }
+.tanda-prod { padding: 14px; display: grid; gap: 12px; }
+.tanda-head { display: flex; align-items: center; gap: 12px; }
+.tanda-head h4 { margin: 2px 0; }
+.tanda-titulo { flex: 1; min-width: 0; }
+.thumb-sm { width: 56px; height: 70px; border-radius: 12px; overflow: hidden; background: var(--cream); flex: none; }
+.thumb-sm img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb-sm .ph { font-size: 22px; }
+.tab-tanda { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 460px; }
+.tab-tanda th {
+  text-align: left; color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase;
+  letter-spacing: .06em; padding: 8px 6px; border-bottom: 1px solid var(--line);
+}
+.tab-tanda td { padding: 8px 6px; border-bottom: 1px dashed var(--line); vertical-align: top; }
+.tab-tanda th:nth-child(n+3), .tab-tanda .num { text-align: right; white-space: nowrap; }
+.tab-tanda .celda { padding: 8px 10px; text-align: right; min-width: 70px; }
+.tab-tanda .hint { display: block; text-align: right; margin-top: 4px; }
+.color-nuevo { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
+.color-nuevo-fila { display: grid; grid-template-columns: 1fr 120px auto; gap: 8px; }
+.sub-h { margin-top: 8px; }
+@media (max-width: 899px) {
+  .color-nuevo-fila { grid-template-columns: 1fr 1fr; }
+  .color-nuevo-fila .btn { grid-column: 1 / -1; }
+  .tab-tanda { font-size: 12.5px; min-width: 420px; }
+  .tab-tanda .celda { min-width: 58px; padding: 6px 8px; }
+}
+
+/* ---------- SIN EL AZUL DEL NAVEGADOR: TODO EN EL COLOR DE LA MARCA ---------- */
+::selection { background: var(--wine); color: #fff; }
+:focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
+select option:checked, select option:hover { background: var(--wine); color: #fff; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--wine); }
