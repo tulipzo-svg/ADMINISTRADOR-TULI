@@ -99,7 +99,7 @@ async function guardarRecordatorio(e) {
   const btn = f.querySelector("[type=submit]");
   const texto = f.texto.value.trim();
   if (!texto) return toast("Escribe el recordatorio");
-  const monto = f.monto.value === "" ? null : Number(f.monto.value);
+  const monto = f.monto.value === "" ? null : leerNumero(f.monto.value);
   if (monto !== null && !(monto >= 0)) return toast("Revisa el monto");
 
   btn.disabled = true;

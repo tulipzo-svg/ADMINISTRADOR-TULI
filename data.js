@@ -58,6 +58,25 @@ const suma = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
 const splitLista = s => [...new Set(String(s || "").split(",").map(x => x.trim()).filter(Boolean))];
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
+/* Lee un monto con coma O punto (el teclado de iPhone en español muestra coma).
+   "13" → 13 · "13,5" → 13.5 · "13.5" → 13.5 · "1.250,50" → 1250.5 · "1,250.50" → 1250.5
+   "1.250.000" → 1250000 · vacío → 0 · texto inválido → NaN */
+function leerNumero(valor) {
+  let s = String(valor ?? "").trim().replace(/\s+/g, "").replace(/\$|usd|bs\.?/gi, "");
+  if (s === "") return 0;
+  const comas = (s.match(/,/g) || []).length, puntos = (s.match(/\./g) || []).length;
+  if (comas && puntos) {
+    const u = Math.max(s.lastIndexOf(","), s.lastIndexOf("."));       // el último separador es el decimal
+    s = s.slice(0, u).replace(/[.,]/g, "") + "." + s.slice(u + 1).replace(/[.,]/g, "");
+  } else if (comas + puntos > 1) {
+    s = s.replace(/[.,]/g, "");                                          // 1.250.000 → 1250000
+  } else {
+    s = s.replace(",", ".");                                            // 13,5 → 13.5
+  }
+  if (!/^-?\d*\.?\d*$/.test(s) || !/\d/.test(s)) return NaN;
+  return Number(s);
+}
+
 function textoMovimiento(tipo, monto) {
   if (tipo === "capital") return `inyectó capital de afuera por ${money(monto)}`;
   if (tipo === "retiro") return `hizo un retiro de ${money(monto)}`;
@@ -484,6 +503,47 @@ const realDB = {
   async guardarTasa(fecha, valor) {
     const { error } = await sb.from("tasas").upsert({ fecha, valor }, { onConflict: "fecha" });
     if (error) throw error;
+  },
+
+  /* ----- FOTOS DE LA PÁGINA DE LA TIENDA (solo 'inicio' y 'nosotros') ----- */
+  async sitioImagenes() {
+    const { data, error } = await sb.from("sitio_imagenes").select("*");
+    if (error) throw error; return data;
+  },
+  // Sube la foto a fotos/sitio/<clave>-<fecha>.jpg y guarda la nueva URL en la fila de esa clave
+  async subirFotoSitio(clave, blob) {
+    const path = `sitio/${clave}-${Date.now()}.jpg`;
+    const { error: e1 } = await sb.storage.from("fotos").upload(path, blob, { contentType: "image/jpeg", cacheControl: "60" });
+    if (e1) throw e1;
+    const url = sb.storage.from("fotos").getPublicUrl(path).data.publicUrl;
+    const { error: e2 } = await sb.from("sitio_imagenes").update({ url, actualizado_en: new Date().toISOString() }).eq("clave", clave);
+    if (e2) throw e2;
+    return url;
+  },
+
+  /* ----- CATEGORÍAS ----- */
+  async categorias() {
+    const { data, error } = await sb.from("categorias").select("nombre").order("nombre");
+    if (error) throw error;
+    return data.map(r => r.nombre);
+  },
+  async guardarCategoria(nombre) {
+    const { error } = await sb.from("categorias").upsert({ nombre }, { onConflict: "nombre", ignoreDuplicates: true });
+    if (error) throw error;
+  },
+
+  /* ----- CIERRES DE MES ----- */
+  async cierres() {
+    const { data, error } = await sb.from("cierres").select("*").order("hasta", { ascending: false }).limit(500);
+    if (error) throw error; return data;
+  },
+  async cerrarPeriodoManual() {
+    const { data, error } = await sb.rpc("cerrar_periodo_manual");
+    if (error) throw error; return data;
+  },
+  async cerrarPendiente() {
+    const { data, error } = await sb.rpc("cerrar_pendiente");
+    if (error) throw error; return data;
   },
 
   async guardarProducto(p) {

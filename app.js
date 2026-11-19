@@ -156,6 +156,8 @@ function render() {
   pintarCaja();
   pintarNotas();
   pintarAnalitica();
+  pintarCierre();
+  pintarFotosTienda();
   $("#fechaHoy").textContent = new Date().toLocaleDateString("es-VE", { weekday: "long", day: "numeric", month: "long" });
 }
 
@@ -363,7 +365,7 @@ function pintarInventario() {
     return `
     <article class="prod card">
       <button class="prod-foto foto-btn" data-foto-ver="${esc(p.id)}" aria-label="Ver foto de ${esc(p.nombre)} en grande" title="Toca para ver la foto grande">
-        ${fotoHTML(p)}${p.destacado ? '<span class="badge">Destacado</span>' : ""}
+        ${fotoHTML(p)}${p.destacado ? '<span class="badge">Destacado</span>' : ""}${p.publicado ? `<span class="badge">${total > 0 ? "En tienda" : "Publicada · sin stock"}</span>` : ""}
       </button>
       <div class="prod-body">
         <small class="cat">${esc(p.categoria)}</small>
@@ -375,6 +377,7 @@ function pintarInventario() {
         </details>
         <div class="acc">
           <button class="btn sm" data-editar="${esc(p.id)}">Editar</button>
+          <button class="btn sm ${p.publicado ? "ghost" : ""}" data-publicar="${esc(p.id)}">${p.publicado ? "Quitar de la tienda" : "Publicar en tienda"}</button>
           <button class="btn sm ghost icono" data-destacar="${esc(p.id)}" aria-label="${p.destacado ? "Quitar destacado" : "Destacar"}" title="${p.destacado ? "Quitar destacado" : "Destacar"}">${p.destacado ? "★" : "☆"}</button>
           <button class="btn sm danger icono" data-borrar="${esc(p.id)}" aria-label="Eliminar ${esc(p.nombre)}" title="Eliminar">🗑</button>
         </div>
@@ -388,38 +391,42 @@ function pintarInventario() {
 }
 
 let editProd = null;
-let fotoBlob = null;
+let editFotos = [];   // fotos de la prenda en el formulario: { url } (ya subida) o { blob, preview } (nueva)
 
 // Tallas se marcan con casillas. "Talla única" excluye S, M y L.
 const tallasSel = () => $$("#formProd input[name=t]:checked").map(x => x.value);
 
 function abrirFormProducto(p = null) {
   editProd = p;
-  fotoBlob = null;
+  editFotos = p ? fotosDe(p).map(url => ({ url })) : [];
   const marcadas = new Set(p ? p.variantes.map(v => v.talla) : []);
   const coloresTxt = p ? [...new Set(p.variantes.map(v => v.color))].join(", ") : "";
-  const cats = [...new Set(state.productos.map(x => x.categoria))].sort();
+  const opcionesCat = categoriasOpciones(p ? p.categoria : "");
   const tog = (v, l) => `<label class="tog"><input type="checkbox" name="t" value="${v}" ${marcadas.has(v) ? "checked" : ""}> ${l}</label>`;
   $("#modal .sheet").innerHTML = `
     <form id="formProd" class="stack">
       <div class="sheet-head"><h3>${p ? "Editar prenda" : "Nueva prenda"}</h3>
         <button type="button" class="x" data-cerrar aria-label="Cerrar">✕</button></div>
 
-      <label class="foto-up">
-        <div class="foto-prev" id="fotoPrev">${p && p.foto_url ? `<img src="${esc(p.foto_url)}" alt="">` : "<span>📷 Toca para subir una foto</span>"}</div>
-        <input type="file" id="fotoIn" accept="image/*" class="sr">
-      </label>
+      <div class="fotos-prod">
+        <div class="fotos-cab"><strong>Fotos de la prenda</strong><span class="small muted" id="fotosCount"></span></div>
+        <div class="fotos-grid" id="fotosGrid"></div>
+        <label class="btn ghost sm fotos-add" id="fotosAddLbl">📷 Agregar fotos<input type="file" id="fotoIn" accept="image/*" multiple hidden></label>
+        <p class="small muted">Hasta 5 fotos. La primera es la portada en la tienda; con ★ cambias la portada.</p>
+      </div>
 
       <label>Nombre<input name="nombre" required maxlength="80" value="${esc(p?.nombre || "")}"></label>
       <div class="row2">
-        <label>Categoría<input name="categoria" list="listaCats" required maxlength="40" value="${esc(p?.categoria || "")}"></label>
+        <label>Categoría<select name="categoria" required>${opcionesCat}</select></label>
         <label>Destacado<select name="destacado"><option value="no" ${p?.destacado ? "" : "selected"}>No</option><option value="si" ${p?.destacado ? "selected" : ""}>Sí</option></select></label>
       </div>
-      <datalist id="listaCats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist>
+      <label id="catNuevaBox" hidden>Nombre de la nueva categoría<input name="categoriaNueva" maxlength="40" placeholder="Ej: Bodys"></label>
       <div class="row2">
-        <label>Precio de venta (USD)<input name="precio" type="number" min="0" step="0.01" inputmode="decimal" required value="${p ? p.precio : ""}"></label>
-        <label>Costo por unidad (USD)<input name="costo" type="number" min="0" step="0.01" inputmode="decimal" value="${p ? p.costo : 0}"></label>
+        <label>Precio de venta (USD)<input name="precio" type="text" inputmode="decimal" autocomplete="off" required value="${p ? p.precio : ""}" placeholder="Ej: 13,50"></label>
+        <label>Costo por unidad (USD)<input name="costo" type="text" inputmode="decimal" autocomplete="off" value="${p ? p.costo : 0}" placeholder="Ej: 7,50"></label>
       </div>
+
+      <label>Publicar en la tienda web<select name="publicado"><option value="no" ${p?.publicado ? "" : "selected"}>No</option><option value="si" ${p?.publicado ? "selected" : ""}>Sí</option></select></label>
 
       <div>
         <p class="small muted" style="margin-bottom:6px">Tallas</p>
@@ -438,6 +445,7 @@ function abrirFormProducto(p = null) {
       </div>
     </form>`;
   pintarGrilla(new Map((p ? p.variantes : []).map(v => [v.talla + "|" + v.color, v.stock])));
+  pintarFotosProd();
   abrirModal();
 }
 
@@ -473,20 +481,29 @@ async function guardarProducto(e) {
     talla: i.dataset.t, color: i.dataset.c, stock: Math.max(0, parseInt(i.value || "0", 10) || 0),
   }));
   if (!variantes.length) return toast("Escribe al menos un color");
-  const precio = Number(f.precio.value), costo = Number(f.costo.value || 0);
+  const precio = leerNumero(f.precio.value), costo = leerNumero(f.costo.value);
   if (!(precio >= 0) || !(costo >= 0)) return toast("Revisa precio y costo");
+
+  // Categoría: la elegida de la lista, o la nueva que se escribió
+  const nuevaCat = f.categoria.value === CAT_NUEVA;
+  const categoria = String(nuevaCat ? f.categoriaNueva.value : f.categoria.value).trim();
+  if (!categoria) return toast(nuevaCat ? "Escribe el nombre de la nueva categoría" : "Elige una categoría");
+  if (categoria.length > 40) return toast("La categoría es muy larga (máximo 40 letras)");
 
   btn.disabled = true;
   try {
-    let foto_url = editProd ? editProd.foto_url || null : null;
-    if (fotoBlob) foto_url = await DB.subirFoto(fotoBlob);
+    const fotos = [];
+    for (const f of editFotos) fotos.push(f.url || await DB.subirFoto(f.blob));
+    if (nuevaCat) await DB.guardarCategoria(categoria);
     await DB.guardarProducto({
       id: editProd ? editProd.id : undefined,
       nombre: f.nombre.value.trim(),
-      categoria: f.categoria.value.trim(),
+      categoria,
       precio, costo,
       destacado: f.destacado.value === "si",
-      foto_url,
+      publicado: f.publicado.value === "si",
+      foto_url: fotos[0] || null,
+      fotos,
       variantes,
     });
     cerrarModal();
@@ -570,9 +587,11 @@ async function registrarMov(e) {
   e.preventDefault();
   const f = e.target;
   const btn = f.querySelector("[type=submit]");
+  const monto = leerNumero(f.monto.value);
+  if (!(monto > 0)) return toast("Escribe un monto mayor que cero");
   btn.disabled = true;
   try {
-    await DB.movimiento(f.tipo.value, f.concepto.value.trim(), Number(f.monto.value));
+    await DB.movimiento(f.tipo.value, f.concepto.value.trim(), monto);
     f.reset();
     toast("Movimiento registrado ✔");
     await cargar();
@@ -587,7 +606,7 @@ async function guardarTasaForm(e) {
   e.preventDefault();
   const f = e.target;
   const btn = f.querySelector("[type=submit]");
-  const valor = Number(f.valor.value);
+  const valor = leerNumero(f.valor.value);
   if (!(valor > 0)) return toast("Escribe la tasa en Bs por USD");
   if (!f.fecha.value) return toast("Elige la fecha de la tasa");
   btn.disabled = true;
@@ -615,7 +634,7 @@ function abrirFormCapital() {
           <select name="moneda"><option value="usd">Dólares (USD)</option><option value="bs">Bolívares (Bs)</option></select>
         </label>
         <label>Monto
-          <input name="monto" type="number" step="0.01" min="0.01" inputmode="decimal" required>
+          <input name="monto" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej: 25,50" required>
         </label>
       </div>
       <p class="nombre-prev" id="capEquiv"></p>
@@ -635,7 +654,7 @@ function pintarEquivCapital() {
   const f = $("#formCapital");
   const out = $("#capEquiv");
   if (!f || !out) return;
-  const monto = Number(f.monto.value) || 0;
+  const monto = leerNumero(f.monto.value) || 0;
   if (f.moneda.value !== "bs") {
     out.textContent = monto ? `Se registrarán ${money(monto)} en dólares.` : "Escribe el monto en dólares.";
     return;
@@ -651,7 +670,7 @@ async function registrarCapital(e) {
   e.preventDefault();
   const f = e.target;
   const btn = f.querySelector("[type=submit]");
-  let usd = Number(f.monto.value) || 0;
+  let usd = leerNumero(f.monto.value) || 0;
   let concepto = f.concepto.value.trim() || "Capital de afuera";
   if (f.moneda.value === "bs") {
     const t = tasaActual();
@@ -757,7 +776,8 @@ function cerrarModal() {
   $("#modal .sheet").innerHTML = "";
   document.body.classList.remove("lock");
   editProd = null;
-  fotoBlob = null;
+  editFotos.forEach(f => f.preview && URL.revokeObjectURL(f.preview));
+  editFotos = [];
   state.compraLineas = [];
 }
 
@@ -782,7 +802,7 @@ function irA(tab) {
   state.tab = tab;
   $$("[data-view]").forEach(v => (v.hidden = v.dataset.view !== tab));
   $$("[data-tab]").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
-  const titulos = { inicio: "Inicio", venta: "Venta rápida", inventario: "Catálogo", compras: "Gasto corporativo", caja: "Caja", notas: "Notas y recordatorios", analitica: "Analítica" };
+  const titulos = { inicio: "Inicio", venta: "Venta rápida", inventario: "Catálogo", compras: "Gasto corporativo", caja: "Caja", notas: "Notas y recordatorios", analitica: "Analítica", cierre: "Cierre de mes" };
   $("#tituloTab").textContent = titulos[tab];
   window.scrollTo(0, 0);
 }
@@ -822,6 +842,7 @@ async function entrar(u) {
   $("#app").hidden = false;
   if (!DEMO) suscribir();
   await cargar();
+  await verificarCierreAutomatico();   // respaldo del cierre de fin de mes (web.js)
   irA(miPerfil().pantalla || "inicio");
 }
 
@@ -874,6 +895,13 @@ async function cargar() {
     DB.productos(), DB.ventas(), DB.movs(), DB.act(), DB.lotes(), DB.empaques(),
     DB.recordatorios(), DB.notas(), DB.tasas(), DB.perfiles(),
   ]);
+  // Cierres de mes: si la base aún no tiene la v7, la app sigue funcionando
+  const [cierres, sitio, categorias] = await Promise.all([
+    DB.cierres().catch(() => state.cierres || []),
+    DB.sitioImagenes().catch(() => state.sitio || []),
+    DB.categorias().catch(() => state.categorias || []),
+  ]);
+  Object.assign(state, { cierres, sitio, categorias });
   const top = act[0];
   // Aviso en vivo cuando otra usuaria registra algo
   if (state.lastActId && top && top.id !== state.lastActId && top.usuaria !== state.usuaria.nombre) {
@@ -987,7 +1015,7 @@ document.addEventListener("input", (e) => {
     const i = Number(t.dataset.i), f = t.dataset.f;
     if (!isNaN(i) && state.compraLineas[i]) {
       if (f === "cantidad") state.compraLineas[i].cantidad = t.value;
-      if (f === "costo") state.compraLineas[i].costo_unit = t.value;
+      if (f === "costo") state.compraLineas[i].costo_unit = leerNumero(t.value) || 0;
     }
     return recalcCompra();
   }
@@ -1019,16 +1047,11 @@ document.addEventListener("change", async (e) => {
     return recalcCompra();
   }
   if (t.id === "fotoPerfilIn") return subirFotoPerfil(t.files[0]);
-  // Foto de prenda
+  // Fotos de la prenda (hasta 5)
   if (t.id === "fotoIn") {
-    const f = t.files[0];
-    if (!f) return;
-    if (!f.type.startsWith("image/")) return toast("Selecciona una imagen");
-    if (f.size > 15 * 1024 * 1024) return toast("La foto es muy pesada (máx. 15 MB)");
-    try {
-      fotoBlob = await comprimir(f);
-      $("#fotoPrev").innerHTML = `<img src="${URL.createObjectURL(fotoBlob)}" alt="Vista previa">`;
-    } catch (err) { toast(err.message); }
+    const archivos = [...t.files];
+    t.value = "";
+    return agregarFotosProd(archivos);
   }
 });
 

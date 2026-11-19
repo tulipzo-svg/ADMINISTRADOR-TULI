@@ -153,7 +153,7 @@ function abrirFormCompra() {
       <span>${EMP_NOMBRE[id]}</span>
       <label>Cantidad<input type="number" min="0" step="1" inputmode="numeric" value="0" data-emp="${id}" data-k="cantidad">
         <small class="hint" data-hint-emp="${id}"></small></label>
-      <label>Costo c/u (USD)<input type="number" min="0" step="0.0001" inputmode="decimal" value="${empaque(id).costo_unit}" data-emp="${id}" data-k="costo"></label>
+      <label>Costo c/u (USD)<input type="text" inputmode="decimal" autocomplete="off" value="${empaque(id).costo_unit}" data-emp="${id}" data-k="costo"></label>
     </div>`;
   $("#modal .sheet").innerHTML = `
     <form id="formCompra" class="stack">
@@ -167,7 +167,7 @@ function abrirFormCompra() {
 
       <div class="row2">
         <label>Detalle (opcional)<input name="descripcion" maxlength="60" placeholder="Ej: Fresa, Verano" autocomplete="off"></label>
-        <label>Costo de envío (USD)<input name="envio" type="number" min="0" step="0.01" inputmode="decimal" value="0"></label>
+        <label>Costo de envío (USD)<input name="envio" type="text" inputmode="decimal" autocomplete="off" value="0"></label>
       </div>
       <p class="nombre-prev" id="cNombre"></p>
 
@@ -248,7 +248,7 @@ function pintarDetalleTanda() {
         <input class="celda" type="number" min="0" step="1" inputmode="numeric" placeholder="0" value="${cant}" data-tc="cant" aria-label="Cantidad de ${esc(f.color)}">
         <small class="hint" data-hint-fila></small>
       </td>
-      <td><input class="celda" type="number" min="0" step="0.01" inputmode="decimal" value="${costo}" data-tc="costo" aria-label="Costo de ${esc(f.color)}"></td>
+      <td><input class="celda" type="text" inputmode="decimal" autocomplete="off" value="${costo}" data-tc="costo" aria-label="Costo de ${esc(f.color)}"></td>
       <td class="num" data-sub>$0.00</td>
     </tr>`;
   }).join("");
@@ -294,7 +294,7 @@ function sincronizarTanda() {
     talla: tr.dataset.talla,
     color: tr.dataset.color,
     cantidad: Number(tr.querySelector('[data-tc="cant"]').value) || 0,
-    costo_unit: Number(tr.querySelector('[data-tc="costo"]').value) || 0,
+    costo_unit: leerNumero(tr.querySelector('[data-tc="costo"]').value) || 0,
   })).filter(l => l.cantidad > 0);
   state.compraLineas = [...state.compraLineas.filter(l => l.producto_id !== p.id), ...nuevas];
 }
@@ -336,7 +336,7 @@ function recalcCompra() {
   const p = compraProdId;
   $$("#detalleTanda tr[data-fila]").forEach(tr => {
     const cant = Number(tr.querySelector('[data-tc="cant"]').value) || 0;
-    const costo = Number(tr.querySelector('[data-tc="costo"]').value) || 0;
+    const costo = leerNumero(tr.querySelector('[data-tc="costo"]').value) || 0;
     const hay = stockVariante(p, tr.dataset.talla, tr.dataset.color);
     tr.querySelector("[data-hint-fila]").textContent = cant ? `quedarán ${hay + cant}` : "";
     tr.querySelector("[data-sub]").textContent = money(cant * costo);
@@ -345,14 +345,14 @@ function recalcCompra() {
   let costoEmp = 0;
   for (const id of EMP_IDS) {
     const c = Number(f.querySelector(`[data-emp="${id}"][data-k="cantidad"]`).value) || 0;
-    const k = Number(f.querySelector(`[data-emp="${id}"][data-k="costo"]`).value) || 0;
+    const k = leerNumero(f.querySelector(`[data-emp="${id}"][data-k="costo"]`).value) || 0;
     costoEmp += c * k;
     const hay = empaque(id).cantidad;
     f.querySelector(`[data-hint-emp="${id}"]`).textContent = `Hay ${hay} · quedarán ${hay + c}`;
   }
 
-  const prendas = suma(state.compraLineas, l => (Number(l.cantidad) || 0) * (Number(l.costo_unit) || 0));
-  const envio = Number(f.envio.value) || 0;
+  const prendas = suma(state.compraLineas, l => (Number(l.cantidad) || 0) * (leerNumero(l.costo_unit) || 0));
+  const envio = leerNumero(f.envio.value) || 0;
   $("#cTotal").textContent = money(prendas + envio + costoEmp);
 
   const desc = f.descripcion.value.trim();
@@ -407,16 +407,16 @@ async function guardarCompra(e) {
   const btn = f.querySelector("[type=submit]");
   const items = state.compraLineas
     .filter(l => l.producto_id && Number(l.cantidad) > 0)
-    .map(l => ({ producto_id: l.producto_id, talla: l.talla, color: l.color, cantidad: Number(l.cantidad), costo_unit: Number(l.costo_unit) || 0 }));
+    .map(l => ({ producto_id: l.producto_id, talla: l.talla, color: l.color, cantidad: Number(l.cantidad), costo_unit: leerNumero(l.costo_unit) || 0 }));
   if (!items.length) return toast("Agrega al menos una prenda");
   if (items.some(i => !i.talla || !i.color)) return toast("Elige talla y color de cada prenda");
 
   const empaques = EMP_IDS.map(id => ({
     id,
     cantidad: Number(f.querySelector(`[data-emp="${id}"][data-k="cantidad"]`).value) || 0,
-    costo_unit: Number(f.querySelector(`[data-emp="${id}"][data-k="costo"]`).value) || 0,
+    costo_unit: leerNumero(f.querySelector(`[data-emp="${id}"][data-k="costo"]`).value) || 0,
   })).filter(x => x.cantidad > 0);
-  const envio = Number(f.envio.value) || 0;
+  const envio = leerNumero(f.envio.value) || 0;
   const descripcion = f.descripcion.value.trim();
 
   btn.disabled = true;

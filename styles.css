@@ -487,3 +487,63 @@ input:focus, select:focus { border-color: var(--wine); box-shadow: 0 0 0 3px var
 :focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; }
 select option:checked, select option:hover { background: var(--wine); color: #fff; }
 input[type="checkbox"], input[type="radio"] { accent-color: var(--wine); }
+
+/* =========================================================
+   CATÁLOGO WEB Y CIERRE DE MES
+   ========================================================= */
+.sec-titulo { margin: 22px 0 10px; font-size: 16px; color: var(--wine); }
+.cw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-top: 16px; }
+.cw-card { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.cw-pausada { opacity: .6; }
+.cw-foto { aspect-ratio: 3 / 4; background: var(--wine-soft); display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.cw-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cw-info { padding: 14px; display: grid; gap: 6px; }
+.cw-info h3 { margin: 0; font-size: 16px; }
+.cw-acciones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.cw-form { gap: 12px; }
+.cw-fila { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cw-fila .check { align-self: end; }
+.check { display: flex; align-items: center; gap: 8px; }
+.check input[type="checkbox"] { width: 18px; height: 18px; }
+.cw-color { border: 1px solid var(--line); border-radius: 14px; padding: 12px; display: grid; gap: 10px; margin-bottom: 10px; }
+.cw-color-head { display: grid; grid-template-columns: 1fr 56px auto; gap: 8px; align-items: center; }
+.cw-color-head input[type="color"] { width: 56px; height: 40px; padding: 2px; border-radius: 10px; border: 1px solid var(--line); background: none; }
+.cw-fotos { display: flex; flex-wrap: wrap; gap: 8px; }
+.cw-thumb { position: relative; width: 76px; height: 96px; border-radius: 10px; overflow: hidden; background: var(--wine-soft); }
+.cw-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cw-thumb button { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; cursor: pointer; padding: 0; }
+.cw-thumb.nueva { outline: 2px dashed var(--wine); outline-offset: -2px; }
+.cw-subir { cursor: pointer; justify-self: start; }
+.cierre-fecha { font-size: 16px !important; line-height: 1.3; }
+.cierre-acciones { display: grid; gap: 12px; margin-top: 16px; }
+.cierre-botones { display: flex; flex-wrap: wrap; gap: 10px; }
+.lista-cierres { display: grid; gap: 10px; }
+.cierre-fila { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.cierre-fila strong { font-size: 15px; }
+@media (max-width: 640px) {
+  .cw-fila { grid-template-columns: 1fr; }
+  .cw-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+/* ---------- FOTOS DE LA PÁGINA DE LA TIENDA ---------- */
+.fotos-tienda { margin-bottom: 16px; }
+.fotos-tienda > summary { cursor: pointer; font-weight: 600; padding: 10px 2px; color: var(--wine); }
+.sitio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin: 12px 0; }
+.sitio-foto { display: flex; gap: 14px; align-items: center; }
+.sitio-prev { width: 96px; height: 120px; flex: none; border-radius: 12px; overflow: hidden; background: var(--wine-soft); display: grid; place-items: center; color: var(--muted); font-size: 12px; text-align: center; }
+.sitio-prev img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sitio-info { display: grid; gap: 6px; }
+.sitio-cambiar { justify-self: start; cursor: pointer; }
+
+/* ---------- FOTOS DE LA PRENDA (hasta 5) ---------- */
+.fotos-prod { display: grid; gap: 8px; }
+.fotos-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.fotos-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.prod-foto-item { position: relative; aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; background: var(--cream); border: 1px solid var(--line); }
+.prod-foto-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.foto-tag { position: absolute; left: 4px; bottom: 4px; padding: 2px 6px; border-radius: 8px; background: var(--wine); color: #fff; font-size: 10px; font-weight: 600; }
+.foto-ico { position: absolute; top: 3px; width: 24px; height: 24px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; font-size: 12px; line-height: 24px; text-align: center; color: #fff; background: rgba(0,0,0,.6); }
+.foto-ico.quitar { right: 3px; }
+.foto-ico.portada { right: 30px; background: rgba(160,2,46,.85); }
+.fotos-add { justify-self: start; cursor: pointer; }
+@media (max-width: 560px) { .fotos-grid { grid-template-columns: repeat(3, 1fr); } }

@@ -57,6 +57,7 @@
         <button data-tab="caja"><span>💵</span>Caja</button>
         <button data-tab="notas"><span>📝</span>Notas y recordatorios</button>
         <button data-tab="analitica"><span>📊</span>Analítica</button>
+        <button data-tab="cierre"><span>🧾</span>Cierre de mes</button>
       </nav>
 
       <div class="side-foot">
@@ -127,7 +128,9 @@
         <div class="toolbar">
           <input id="buscarInv" class="input" placeholder="Buscar prenda…" autocomplete="off">
           <button class="btn" id="btnNueva">+ Nueva prenda</button>
+        <button class="btn ghost" id="btnPublicarTodo" type="button">📤 Publicar todo lo que tiene existencias</button>
         </div>
+        <div id="fotosTienda"></div>
         <div class="chips" id="chips"></div>
         <div class="grid-prod" id="gridProd"></div>
         <p class="nota" id="demoNota"></p>
@@ -157,7 +160,7 @@
             <span class="small" id="tasaVar"></span>
           </div>
           <form id="formTasa" class="tasa-form">
-            <input name="valor" type="number" step="0.0001" min="0" inputmode="decimal" placeholder="Bs por USD" required aria-label="Tasa en bolívares">
+            <input name="valor" type="text" inputmode="decimal" autocomplete="off" placeholder="Bs por USD (ej: 36,50)" required aria-label="Tasa en bolívares">
             <input name="fecha" type="date" required aria-label="Fecha de la tasa">
             <button class="btn sm" type="submit">Guardar tasa</button>
           </form>
@@ -182,7 +185,7 @@
               <input name="concepto" required maxlength="200" placeholder="Ej: Alquiler de noviembre">
             </label>
             <label>Monto (USD)
-              <input name="monto" type="number" step="0.01" min="0.01" inputmode="decimal" required>
+              <input name="monto" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej: 25,50" required>
             </label>
             <button class="btn" type="submit">Registrar</button>
           </form>
@@ -220,7 +223,7 @@
                   </select>
                 </label>
                 <label>Monto USD (opcional)
-                  <input name="monto" type="number" step="0.01" min="0" inputmode="decimal">
+                  <input name="monto" type="text" inputmode="decimal" autocomplete="off" placeholder="Opcional (ej: 10,00)">
                 </label>
               </div>
               <label>Recordatorio
@@ -268,6 +271,11 @@
         <div class="grid-3" id="rankings" style="margin-top:16px"></div>
       </section>
 
+      <!-- CIERRE DE MES: corte de ventas y movimientos + Excel -->
+      <section data-view="cierre" class="view" hidden>
+        <div id="vistaCierre"></div>
+      </section>
+
     </main>
 
     <nav class="tabbar">
@@ -278,6 +286,7 @@
       <button data-tab="caja"><span>💵</span>Caja</button>
       <button data-tab="notas"><span>📝</span>Notas</button>
       <button data-tab="analitica"><span>📊</span>Gráficas</button>
+      <button data-tab="cierre"><span>🧾</span>Cierre</button>
     </nav>
   </div>
 
@@ -298,10 +307,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Lógica de la app -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="data.js"></script>
   <script src="tandas.js"></script>
   <script src="recordatorios.js"></script>
   <script src="perfil.js"></script>
+  <script src="web.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
